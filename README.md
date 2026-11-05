@@ -2,6 +2,10 @@
 
 > Include this README content in the submitted PDF. Also include one screenshot of the work performed in BITS Virtual Lab as proof of completion.
 
+## Live Streamlit App
+
+[Open the House Rent Category Classifier](https://ml-assignment-k33bmyt2h6hdg3uuhzrsmp.streamlit.app/)
+
 ## a. Problem Statement
 
 The Kaggle House Rent Prediction dataset is originally a regression dataset: its `Rent` column contains numeric monthly rents. This project turns it into a three-class classification task by labeling each listing as **Low**, **Medium**, or **High** rent. The models use property and listing attributes to predict the rent category. The class boundaries are the one-third and two-third quantiles of rent in the dataset.
@@ -65,11 +69,11 @@ The app loads the five saved pipelines from `model/`; it does not train or downl
 assignment-2/
 ├── app.py
 ├── model/
-│   ├── logistic_regression.joblib
-│   ├── decision_tree.joblib
-│   ├── knn.joblib
-│   ├── naive_bayes.joblib
-│   ├── support_vector_machine.joblib
+│   ├── logistic.joblib
+│   ├── decision.joblib
+│   ├── knn_model.joblib
+│   ├── naive_bayes_model.joblib
+│   ├── support_vector.joblib
 │   └── metrics.json
 ├── requirements.txt
 ├── test_data.csv
