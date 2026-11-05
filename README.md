@@ -1,10 +1,8 @@
 # Hotel Reservation Cancellation Classification
 
-> Include this README content in the submitted PDF. Also include one screenshot of the work performed in BITS Virtual Lab as proof of completion.
-
 ## Live Streamlit App
 
-[Open the Streamlit app](https://ml-assignment-k33bmyt2h6hdg3uuhzrsmp.streamlit.app/). The hosted deployment must be refreshed with this version of the repository to show the hotel-reservation workflow.
+[Open the Streamlit app](https://ml-assignment-k33bmyt2h6hdg3uuhzrsmp.streamlit.app/).
 
 ## a. Problem Statement
 
@@ -21,11 +19,13 @@ Predict whether a hotel reservation will be canceled or honored using booking, s
 - **Excluded column:** `Booking_ID` is an identifier and is not used as a predictor.
 - **Preprocessing:** Numeric features are median-imputed and standardized. Categorical features are mode-imputed and one-hot encoded. The data is split into stratified 80/20 train/test sets with random state 42.
 
-## c. GitHub Repository Link [1 mark]
+## c. GitHub Repository Link
+
+- **https://github.com/shrihari007/ML-assignment**
 
 [Add the URL of the GitHub repository containing the source, requirements, test data, and five saved models.]
 
-## d. Models Used [5 marks]
+## d. Models Used
 
 Precision, recall, and F1 use weighted averaging. AUC is binary ROC AUC. Results below are from the same stratified test split of 7,255 reservations.
 
@@ -37,7 +37,7 @@ Precision, recall, and F1 use weighted averaging. AUC is binary ROC AUC. Results
 | Naive Bayes (Gaussian) | 0.4074 | 0.8037 | 0.7073 | 0.4074 | 0.3286 | 0.1517 |
 | Support Vector Machine | 0.8087 | 0.8676 | 0.8043 | 0.8087 | 0.8042 | 0.5519 |
 
-### Observations on Model Performance [3 marks]
+### Observations on Model Performance
 
 | ML Model Name | Observation about model performance |
 |---|---|
