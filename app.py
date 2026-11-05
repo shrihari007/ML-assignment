@@ -337,7 +337,6 @@ def run_app() -> None:
 		)
 		return test_data, results
 
-	@st.cache_data(show_spinner=False)
 	def get_cached_model_details(
 		csv_content: bytes,
 		model_name: str,
