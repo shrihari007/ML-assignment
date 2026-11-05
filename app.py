@@ -71,6 +71,13 @@ MODEL_FACTORIES = {
 		ensemble=False,
 	),
 }
+MODEL_FILES = {
+	"Logistic Regression": "logistic.joblib",
+	"Decision Tree": "decision.joblib",
+	"KNN": "knn_model.joblib",
+	"Naive Bayes": "naive_bayes_model.joblib",
+	"Support Vector Machine": "support_vector.joblib",
+}
 
 
 def _parse_floor(value: str) -> tuple[float, float]:
@@ -205,7 +212,7 @@ def train_models(raw: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 				"MCC": matthews_corrcoef(y_test, predictions),
 			}
 		)
-		joblib.dump(model, MODEL_DIR / f"{name.lower().replace(' ', '_')}.joblib")
+		joblib.dump(model, MODEL_DIR / MODEL_FILES[name])
 
 	metrics = pd.DataFrame(rows)
 	metrics.to_json(METRICS_PATH, orient="records", indent=2)
@@ -218,7 +225,7 @@ def train_models(raw: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 def load_saved_models() -> dict[str, Pipeline]:
 	models = {}
 	for name in MODEL_FACTORIES:
-		model_path = MODEL_DIR / f"{name.lower().replace(' ', '_')}.joblib"
+		model_path = MODEL_DIR / MODEL_FILES[name]
 		if not model_path.exists():
 			raise FileNotFoundError(
 				f"Saved model not found: {model_path.name}. Train and include all five model files first."
