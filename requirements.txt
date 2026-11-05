@@ -1,0 +1,6 @@
+kagglehub
+joblib
+numpy
+pandas
+scikit-learn>=1.2
+streamlit
