@@ -23,8 +23,6 @@ Predict whether a hotel reservation will be canceled or honored using booking, s
 
 - **https://github.com/shrihari007/ML-assignment**
 
-[Add the URL of the GitHub repository containing the source, requirements, test data, and five saved models.]
-
 ## d. Models Used
 
 Precision, recall, and F1 use weighted averaging. AUC is binary ROC AUC. Results below are from the same stratified test split of 7,255 reservations.
