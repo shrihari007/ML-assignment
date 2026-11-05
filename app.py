@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import io
 import re
 from pathlib import Path
+
+import streamlit as st
 
 import joblib
 import pandas as pd
@@ -226,7 +229,7 @@ def load_saved_models() -> dict[str, Pipeline]:
 
 def evaluate_uploaded_data(
 	test_data: pd.DataFrame, models: dict[str, Pipeline]
-) -> tuple[pd.DataFrame, dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+) -> pd.DataFrame:
 	required = set(FEATURES + [TARGET])
 	missing_columns = required.difference(test_data.columns)
 	if missing_columns:
@@ -246,8 +249,6 @@ def evaluate_uploaded_data(
 		)
 
 	rows = []
-	reports = {}
-	matrices = {}
 	for name, model in models.items():
 		predictions = model.predict(features)
 		rows.append(
@@ -265,38 +266,44 @@ def evaluate_uploaded_data(
 				"MCC": matthews_corrcoef(labels, predictions),
 			}
 		)
-		reports[name] = pd.DataFrame(
-			classification_report(
-				labels,
-				predictions,
-				labels=class_names,
-				output_dict=True,
-				zero_division=0,
-			)
-		).transpose()
-		matrices[name] = pd.DataFrame(
-			confusion_matrix(labels, predictions, labels=class_names),
-			index=pd.Index(class_names, name="Actual"),
-			columns=pd.Index(class_names, name="Predicted"),
-		)
+	return pd.DataFrame(rows)
 
-	return pd.DataFrame(rows), reports, matrices
+
+def evaluate_model_details(
+	test_data: pd.DataFrame, model: Pipeline
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+	features = test_data[FEATURES]
+	labels = test_data[TARGET].astype(str)
+	class_names = model.named_steps["classifier"].classes_
+	predictions = model.predict(features)
+	report = pd.DataFrame(
+		classification_report(
+			labels,
+			predictions,
+			labels=class_names,
+			output_dict=True,
+			zero_division=0,
+		)
+	).transpose()
+	matrix = pd.DataFrame(
+		confusion_matrix(labels, predictions, labels=class_names),
+		index=pd.Index(class_names, name="Actual"),
+		columns=pd.Index(class_names, name="Predicted"),
+	)
+	return matrix, report
 
 
 def run_app() -> None:
-	import streamlit as st
 
 	st.set_page_config(page_title="House Rent Classifier Evaluation", layout="wide")
 	st.title("House Rent Category Classification")
+	st.markdown(
+		"Dataset details: [House Rent Prediction Dataset on Kaggle]"
+		"(https://www.kaggle.com/datasets/iamsouravbanerjee/house-rent-prediction-dataset/data)"
+	)
 	st.caption(
 		"Upload labeled test data to evaluate the saved classifiers. The app does not train models."
 	)
-
-	try:
-		models = load_saved_models()
-	except Exception as error:
-		st.error(f"Could not load saved models: {error}")
-		st.stop()
 
 	if TEST_PATH.exists():
 		st.download_button(
@@ -311,9 +318,40 @@ def run_app() -> None:
 		st.info("Upload a CSV with all 13 model features and the 'Rent Category' target column.")
 		st.stop()
 
+	model_signature = tuple(
+		(path.name, path.stat().st_mtime_ns, path.stat().st_size)
+		for path in sorted(MODEL_DIR.glob("*.joblib"))
+	)
+
+	@st.cache_resource
+	def get_cached_models(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Pipeline]:
+		return load_saved_models()
+
+	@st.cache_data(show_spinner=False)
+	def get_cached_evaluation(
+		csv_content: bytes, signature: tuple[tuple[str, int, int], ...]
+	) -> tuple[pd.DataFrame, pd.DataFrame]:
+		test_data = pd.read_csv(io.BytesIO(csv_content))
+		results = evaluate_uploaded_data(
+			test_data, get_cached_models(signature)
+		)
+		return test_data, results
+
+	@st.cache_data(show_spinner=False)
+	def get_cached_model_details(
+		csv_content: bytes,
+		model_name: str,
+		signature: tuple[tuple[str, int, int], ...],
+	) -> tuple[pd.DataFrame, pd.DataFrame]:
+		test_data = pd.read_csv(io.BytesIO(csv_content))
+		model = get_cached_models(signature)[model_name]
+		return evaluate_model_details(test_data, model)
+
 	try:
-		test_data = pd.read_csv(upload)
-		results, reports, matrices = evaluate_uploaded_data(test_data, models)
+		with st.spinner("Evaluating test data with the saved models..."):
+			test_data, results = get_cached_evaluation(
+				upload.getvalue(), model_signature
+			)
 	except Exception as error:
 		st.error(f"Could not evaluate uploaded data: {error}")
 		st.stop()
@@ -329,16 +367,23 @@ def run_app() -> None:
 		hide_index=True,
 		use_container_width=True,
 	)
-	selected_model = st.selectbox("Model details", list(models))
-	col_matrix, col_report = st.columns(2)
-	with col_matrix:
-		st.subheader("Confusion Matrix")
-		st.dataframe(matrices[selected_model], use_container_width=True)
-	with col_report:
-		st.subheader("Classification Report")
-		st.dataframe(
-			reports[selected_model].style.format("{:.3f}"), use_container_width=True
-		)
+	selected_model = st.selectbox("Model details", list(MODEL_FACTORIES))
+	details_placeholder = st.empty()
+	try:
+		with details_placeholder.container():
+			with st.spinner(f"Loading {selected_model} tables..."):
+				matrix, report = get_cached_model_details(
+					upload.getvalue(), selected_model, model_signature
+				)
+			col_matrix, col_report = st.columns(2)
+			with col_matrix:
+				st.subheader("Confusion Matrix")
+				st.dataframe(matrix, use_container_width=True)
+			with col_report:
+				st.subheader("Classification Report")
+				st.dataframe(report.style.format("{:.3f}"), use_container_width=True)
+	except Exception as error:
+		details_placeholder.error(f"Could not load {selected_model} tables: {error}")
 
 
 if __name__ == "__main__":
