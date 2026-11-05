@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import re
 from pathlib import Path
 
 import streamlit as st
@@ -26,7 +25,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -35,25 +34,29 @@ ROOT = Path(__file__).resolve().parent
 MODEL_DIR = ROOT / "model"
 TEST_PATH = ROOT / "test_data.csv"
 METRICS_PATH = MODEL_DIR / "metrics.json"
-TARGET = "Rent Category"
+TARGET = "booking_status"
 RANDOM_STATE = 42
 
 NUMERIC_FEATURES = [
-	"BHK",
-	"Size",
-	"Bathroom",
-	"Posted Year",
-	"Posted Month",
-	"Floor Level",
-	"Total Floors",
+	"no_of_adults",
+	"no_of_children",
+	"no_of_weekend_nights",
+	"no_of_week_nights",
+	"required_car_parking_space",
+	"lead_time",
+	"arrival_year",
+	"arrival_month",
+	"arrival_date",
+	"repeated_guest",
+	"no_of_previous_cancellations",
+	"no_of_previous_bookings_not_canceled",
+	"avg_price_per_room",
+	"no_of_special_requests",
 ]
 CATEGORICAL_FEATURES = [
-	"Area Type",
-	"Area Locality",
-	"City",
-	"Furnishing Status",
-	"Tenant Preferred",
-	"Point of Contact",
+	"type_of_meal_plan",
+	"room_type_reserved",
+	"market_segment_type",
 ]
 FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 MODEL_FACTORIES = {
@@ -66,7 +69,7 @@ MODEL_FACTORIES = {
 	"KNN": lambda: KNeighborsClassifier(n_neighbors=7, weights="distance"),
 	"Naive Bayes": lambda: GaussianNB(),
 	"Support Vector Machine": lambda: CalibratedClassifierCV(
-		estimator=SVC(class_weight="balanced", random_state=RANDOM_STATE),
+		estimator=LinearSVC(class_weight="balanced", random_state=RANDOM_STATE),
 		cv=3,
 		ensemble=False,
 	),
@@ -80,57 +83,16 @@ MODEL_FILES = {
 }
 
 
-def _parse_floor(value: str) -> tuple[float, float]:
-	parts = re.split(r"\s+out of\s+", str(value).strip(), maxsplit=1, flags=re.I)
-
-	def parse_level(text: str) -> float:
-		match = re.search(r"-?\d+(?:\.\d+)?", text)
-		if match:
-			return float(match.group())
-		if text.strip().lower() == "ground":
-			return 0.0
-		return float("nan")
-
-	level = parse_level(parts[0])
-	total = parse_level(parts[1]) if len(parts) == 2 else float("nan")
-	return level, total
-
-
 def prepare_data(raw: pd.DataFrame) -> pd.DataFrame:
-	required = {
-		"Posted On",
-		"BHK",
-		"Rent",
-		"Size",
-		"Floor",
-		"Area Type",
-		"Area Locality",
-		"City",
-		"Furnishing Status",
-		"Tenant Preferred",
-		"Bathroom",
-		"Point of Contact",
-	}
+	required = set(FEATURES + [TARGET])
 	missing_columns = required.difference(raw.columns)
 	if missing_columns:
 		raise ValueError(f"Dataset is missing required columns: {sorted(missing_columns)}")
-
-	data = raw.copy()
-	posted = pd.to_datetime(data["Posted On"], errors="coerce")
-	data["Posted Year"] = posted.dt.year
-	data["Posted Month"] = posted.dt.month
-	floors = data["Floor"].map(_parse_floor)
-	data["Floor Level"] = floors.map(lambda pair: pair[0])
-	data["Total Floors"] = floors.map(lambda pair: pair[1])
-
-	lower, upper = data["Rent"].quantile([1 / 3, 2 / 3]).tolist()
-	data[TARGET] = pd.cut(
-		data["Rent"],
-		bins=[-float("inf"), lower, upper, float("inf")],
-		labels=["Low", "Medium", "High"],
-		include_lowest=True,
-	).astype(str)
-	return data[FEATURES + [TARGET]]
+	if raw.empty:
+		raise ValueError("The dataset has no rows to train on.")
+	if raw[TARGET].isna().any():
+		raise ValueError(f"The '{TARGET}' column contains missing labels.")
+	return raw[FEATURES + [TARGET]].copy()
 
 
 def make_preprocessor() -> ColumnTransformer:
@@ -302,14 +264,15 @@ def evaluate_model_details(
 
 def run_app() -> None:
 
-	st.set_page_config(page_title="House Rent Classifier Evaluation", layout="wide")
-	st.title("House Rent Category Classification")
+	st.set_page_config(page_title="Hotel Reservation Classifier", layout="wide")
+	st.title("Hotel Reservation Cancellation Classification")
 	st.markdown(
-		"Dataset details: [House Rent Prediction Dataset on Kaggle]"
-		"(https://www.kaggle.com/datasets/iamsouravbanerjee/house-rent-prediction-dataset/data)"
+		"Dataset details: [Hotel Reservations Dataset on Kaggle]"
+		"(https://www.kaggle.com/datasets/ahsan81/hotel-reservations-classification-dataset)"
 	)
 	st.caption(
-		"Upload labeled test data to evaluate the saved classifiers. The app does not train models."
+		"Upload labeled test data to predict whether a reservation was canceled. "
+		"The app evaluates the saved classifiers without retraining."
 	)
 
 	if TEST_PATH.exists():
@@ -322,7 +285,9 @@ def run_app() -> None:
 
 	upload = st.file_uploader("Upload labeled test data (CSV)", type=["csv"])
 	if upload is None:
-		st.info("Upload a CSV with all 13 model features and the 'Rent Category' target column.")
+		st.info(
+			"Upload a CSV with all 17 booking features and the 'booking_status' target column."
+		)
 		st.stop()
 
 	model_signature = tuple(

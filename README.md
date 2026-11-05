@@ -1,26 +1,25 @@
-# House Rent Category Classification
+# Hotel Reservation Cancellation Classification
 
 > Include this README content in the submitted PDF. Also include one screenshot of the work performed in BITS Virtual Lab as proof of completion.
 
 ## Live Streamlit App
 
-[Open the House Rent Category Classifier](https://ml-assignment-k33bmyt2h6hdg3uuhzrsmp.streamlit.app/)
+[Open the Streamlit app](https://ml-assignment-k33bmyt2h6hdg3uuhzrsmp.streamlit.app/). The hosted deployment must be refreshed with this version of the repository to show the hotel-reservation workflow.
 
 ## a. Problem Statement
 
-The Kaggle House Rent Prediction dataset is originally a regression dataset: its `Rent` column contains numeric monthly rents. This project turns it into a three-class classification task by labeling each listing as **Low**, **Medium**, or **High** rent. The models use property and listing attributes to predict the rent category. The class boundaries are the one-third and two-third quantiles of rent in the dataset.
+Predict whether a hotel reservation will be canceled or honored using booking, stay, room, guest-history, and pricing information. Unlike the prior rent dataset, this dataset provides a native binary classification target, `booking_status`.
 
 ## b. Dataset Description [1 mark]
 
-- **Dataset:** House Rent Prediction Dataset, version 9
-- **Source:** [Kaggle: House Rent Prediction Dataset](https://www.kaggle.com/datasets/iamsouravbanerjee/house-rent-prediction-dataset/data)
-- **Observations:** 4,746 listings
-- **Original columns:** 12, including the numeric `Rent` target and 11 other columns
-- **Classification target:** `Rent Category` (`Low`, `Medium`, `High`), created by dividing `Rent` at the one-third and two-third quantiles (₹12,000 and ₹25,000 in this version)
-- **Predictor features:** 13 engineered features: BHK, Size, Bathroom, posting year, posting month, floor level, total floors, Area Type, Area Locality, City, Furnishing Status, Tenant Preferred, and Point of Contact
-- **Preprocessing:** `Posted On` and `Floor` are parsed into numeric features. Numeric inputs are median-imputed and standardized; categorical inputs are mode-imputed and one-hot encoded. A stratified 80/20 train/test split uses random state 42. The same split and preprocessing pipeline are used for all five classifiers.
-
-**Dataset note:** Kaggle identifies this as a regression dataset. The classification labels are derived for this assignment; they are not labels supplied by the dataset author. The 13 predictors include engineered fields to meet the 12-feature minimum.
+- **Dataset:** Hotel Reservations Dataset
+- **Source:** [Kaggle: Hotel Reservations Dataset](https://www.kaggle.com/datasets/ahsan81/hotel-reservations-classification-dataset)
+- **Observations:** 36,275 reservations
+- **Original columns:** 19, including the unique booking identifier, 17 predictors, and the target
+- **Target:** `booking_status` with classes `Canceled` and `Not_Canceled`
+- **Input features (17):** `no_of_adults`, `no_of_children`, `no_of_weekend_nights`, `no_of_week_nights`, `type_of_meal_plan`, `required_car_parking_space`, `room_type_reserved`, `lead_time`, `arrival_year`, `arrival_month`, `arrival_date`, `market_segment_type`, `repeated_guest`, `no_of_previous_cancellations`, `no_of_previous_bookings_not_canceled`, `avg_price_per_room`, and `no_of_special_requests`
+- **Excluded column:** `Booking_ID` is an identifier and is not used as a predictor.
+- **Preprocessing:** Numeric features are median-imputed and standardized. Categorical features are mode-imputed and one-hot encoded. The data is split into stratified 80/20 train/test sets with random state 42.
 
 ## c. GitHub Repository Link [1 mark]
 
@@ -28,29 +27,27 @@ The Kaggle House Rent Prediction dataset is originally a regression dataset: its
 
 ## d. Models Used [5 marks]
 
-Precision, recall, and F1 use weighted averaging across the three classes. AUC is weighted one-vs-rest multiclass ROC AUC. Replace the metric fields and observations with the values produced by running the app; do not submit the placeholders as results.
+Precision, recall, and F1 use weighted averaging. AUC is binary ROC AUC. Results below are from the same stratified test split of 7,255 reservations.
 
 | ML Model Name | Accuracy | AUC | Precision | Recall | F1 | MCC |
 |---|---:|---:|---:|---:|---:|---:|
-| Logistic Regression | 0.7453 | 0.8968 | 0.7580 | 0.7453 | 0.7487 | 0.6207 |
-| Decision Tree | 0.6979 | 0.8238 | 0.6978 | 0.6979 | 0.6978 | 0.5462 |
-| KNN | 0.6853 | 0.8600 | 0.6926 | 0.6853 | 0.6881 | 0.5270 |
-| Naive Bayes (Gaussian) | 0.3832 | 0.6683 | 0.4805 | 0.3832 | 0.2975 | 0.1539 |
-| Support Vector Machine | 0.7347 | 0.8912 | 0.7538 | 0.7347 | 0.7399 | 0.6060 |
+| Logistic Regression | 0.7839 | 0.8678 | 0.7987 | 0.7839 | 0.7881 | 0.5380 |
+| Decision Tree | 0.8558 | 0.8985 | 0.8644 | 0.8558 | 0.8581 | 0.6884 |
+| KNN | 0.8707 | 0.9248 | 0.8696 | 0.8707 | 0.8700 | 0.7036 |
+| Naive Bayes (Gaussian) | 0.4074 | 0.8037 | 0.7073 | 0.4074 | 0.3286 | 0.1517 |
+| Support Vector Machine | 0.8087 | 0.8676 | 0.8043 | 0.8087 | 0.8042 | 0.5519 |
 
 ### Observations on Model Performance [3 marks]
 
-Results below are from the fixed stratified test split.
-
 | ML Model Name | Observation about model performance |
 |---|---|
-| Logistic Regression | Best overall: it leads in accuracy, AUC, weighted precision, F1, and MCC, indicating the strongest overall class separation on this split. |
-| Decision Tree | Achieves moderate results and an MCC of 0.5462, but trails Logistic Regression and SVM across the reported metrics. |
-| KNN | Reaches an AUC of 0.8600 but has lower accuracy and MCC than the leading models, so its overall class predictions are less consistent. |
-| Naive Bayes (Gaussian) | Performs substantially below the other models, with 0.3832 accuracy and 0.1539 MCC; its Gaussian feature assumptions appear poorly suited to these mixed, one-hot encoded inputs. |
-| Support Vector Machine | A close second to Logistic Regression, with 0.7347 accuracy and 0.6060 MCC; it has strong class separation but slightly lower scores than Logistic Regression. |
+| Logistic Regression | Moderate performance with 0.7839 accuracy and 0.5380 MCC; it trails the tree-based and KNN models on this split. |
+| Decision Tree | Strong results, with 0.8558 accuracy and 0.6884 MCC, but slightly below KNN across the reported metrics. |
+| KNN | Best overall on this split: it has the highest accuracy (0.8707), AUC (0.9248), F1 (0.8700), and MCC (0.7036). |
+| Naive Bayes (Gaussian) | Weakest overall, with 0.4074 accuracy and 0.1517 MCC, suggesting its feature-distribution assumptions fit this dataset poorly. |
+| Support Vector Machine | Moderate performance at 0.8087 accuracy and 0.5519 MCC; it outperforms Logistic Regression on accuracy and MCC but trails Decision Tree and KNN. |
 
-**Overall winner for this dataset:** Logistic Regression. It has the highest MCC (0.6207) and also leads on accuracy, AUC, precision, and F1 for the fixed test split.
+**Overall winner for this dataset:** KNN, based on the highest accuracy, AUC, F1, and MCC on the fixed test split.
 
 ## Run the Project
 
@@ -61,7 +58,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The app loads the five saved pipelines from `model/`; it does not train or download data at runtime. A Kaggle dataset-details link is available in the app. Upload `test_data.csv` or another labeled test CSV containing the 13 predictor columns listed above and the `Rent Category` target column. Cached results keep the all-model metric comparison from rerunning when changing the model dropdown. A spinner replaces the selected-model detail area while its confusion matrix and classification report load. A sample test CSV is available to download from the app. For the assignment proof requirement, run the workflow in BITS Virtual Lab and capture one screenshot there; that screenshot is not generated by this repository.
+The app loads the five saved pipelines from `model/` and does not train models at runtime. Upload `test_data.csv` or another labeled test CSV containing the 17 input features and `booking_status`. The app compares all five models and provides a selected-model confusion matrix and classification report. For the assignment proof requirement, run the workflow in BITS Virtual Lab and capture one screenshot there; that screenshot is not generated by this repository.
 
 ## Codebase
 
